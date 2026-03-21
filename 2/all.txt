@@ -1,0 +1,6 @@
+john,25,london,engineer
+alice,30,paris,designer
+bob,40,berlin,manager
+kate,28,madrid,analyst
+tom,35,rome,developer
+eva,22,vienna,student

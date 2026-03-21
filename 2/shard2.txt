@@ -1,0 +1,2 @@
+bob,40,berlin,manager
+kate,28,madrid,analyst
