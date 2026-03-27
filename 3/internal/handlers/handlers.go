@@ -81,16 +81,15 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"error" : "priority is empty"}`)
 		return
 	}
-	if remindAt == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error" : "remind_at is empty"}`)
-		return
-	}
-	remindAtTime, err := time.Parse(time.RFC3339, remindAt)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error" : "invalid remind_at"}`)
-		return
+	var remindAtTime *time.Time
+	if remindAt != "" {
+		parsedTime, err := time.Parse(time.RFC3339, remindAt)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, `{"error" : "invalid remind_at"}`)
+			return
+		}
+		remindAtTime = &parsedTime
 	}
 	eventReq := dto.CreateEventRequest{
 		UserID:      userIdInt,
@@ -98,7 +97,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		EventTime:   dateTime,
 		Description: &description,
 		Priority:    priority,
-		RemindAt:    &remindAtTime,
+		RemindAt:    remindAtTime,
 	}
 	id, err := h.eventService.Create(eventReq)
 	if err != nil {

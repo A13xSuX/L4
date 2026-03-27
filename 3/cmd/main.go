@@ -6,8 +6,10 @@ import (
 	"4_3/internal/myLogger"
 	"4_3/internal/repository"
 	"4_3/internal/service"
+	"4_3/internal/worker"
 	"flag"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -18,8 +20,16 @@ func main() {
 	flag.Parse()
 
 	eventRepo := repository.NewEventRepository()
-	eventService := service.NewEventService(eventRepo)
+	remindCh := make(chan worker.ReminderTask, 100)
+	eventService := service.NewEventService(eventRepo, remindCh)
 	eventHandler := handlers.NewEventHandler(eventService, logger)
+
+	remindWorker := worker.NewRemindWorker(remindCh, logger)
+	go remindWorker.Start()
+
+	archiveInterval := 30 * time.Second
+	archiveWorker := worker.NewArchiveWorker(eventRepo, archiveInterval, logger)
+	go archiveWorker.Start()
 
 	http.Handle("/status", middleware.LoggingMiddleware(http.HandlerFunc(eventHandler.Status), logger))
 	http.Handle("/create_event", middleware.LoggingMiddleware(http.HandlerFunc(eventHandler.CreateEvent), logger))
@@ -30,11 +40,11 @@ func main() {
 	http.Handle("/update_event", middleware.LoggingMiddleware(http.HandlerFunc(eventHandler.UpdateEvent), logger))
 
 	addr := ":" + *portFlag
-	msg := "Server starting on " + *portFlag
+	msg := "Server starting on " + addr
 	logger.Info(msg)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
-		logger.Error("server failed", err)
+		logger.Error("Server failed", err)
 		return
 	}
 

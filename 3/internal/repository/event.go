@@ -14,7 +14,8 @@ type EventRepository struct {
 
 func NewEventRepository() *EventRepository {
 	return &EventRepository{
-		Events: make(map[int]models.Event),
+		Events:        make(map[int]models.Event),
+		ArchiveEvents: make(map[int]models.Event),
 	}
 }
 
@@ -38,8 +39,10 @@ func (r *EventRepository) GetAll() []models.Event {
 	defer r.m.RUnlock()
 
 	events := make([]models.Event, 0, len(r.Events))
-	for _, v := range r.Events {
-		events = append(events, v)
+	for k, v := range r.Events {
+		if _, ok := r.ArchiveEvents[k]; !ok {
+			events = append(events, v)
+		}
 	}
 	return events
 }

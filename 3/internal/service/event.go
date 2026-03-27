@@ -4,21 +4,24 @@ import (
 	"4_3/internal/dto"
 	"4_3/internal/models"
 	"4_3/internal/repository"
+	"4_3/internal/worker"
 	"errors"
 	"sync"
 	"time"
 )
 
 type EventService struct {
-	m    sync.Mutex
-	ID   int
-	repo *repository.EventRepository
+	m        sync.Mutex
+	ID       int
+	repo     *repository.EventRepository
+	remindCh chan worker.ReminderTask
 }
 
-func NewEventService(repo *repository.EventRepository) *EventService {
+func NewEventService(repo *repository.EventRepository, remindCh chan worker.ReminderTask) *EventService {
 	return &EventService{
-		ID:   0,
-		repo: repo,
+		ID:       0,
+		repo:     repo,
+		remindCh: remindCh,
 	}
 }
 
@@ -54,6 +57,16 @@ func (s *EventService) Create(eventReq dto.CreateEventRequest) (int, error) {
 		CreatedAt:   now,
 	}
 	s.repo.CreateEvent(event)
+	if event.RemindAt != nil {
+		reminderTask := worker.ReminderTask{
+			ID:        event.ID,
+			UserID:    event.UserID,
+			Title:     event.Title,
+			EventTime: event.EventTime,
+			RemindAt:  *event.RemindAt,
+		}
+		s.remindCh <- reminderTask
+	}
 	return event.ID, nil
 }
 
