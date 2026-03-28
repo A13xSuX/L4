@@ -1,11 +1,11 @@
 package service
 
 import (
+	"4_3/internal/customErrs"
 	"4_3/internal/dto"
 	"4_3/internal/models"
 	"4_3/internal/repository"
 	"4_3/internal/worker"
-	"errors"
 	"sync"
 	"time"
 )
@@ -28,22 +28,22 @@ func NewEventService(repo *repository.EventRepository, remindCh chan worker.Remi
 func (s *EventService) Create(eventReq dto.CreateEventRequest) (int, error) {
 	now := time.Now()
 	if eventReq.UserID <= 0 {
-		return -1, errors.New("invalid UserID")
+		return -1, customErrs.InvalidUserIDErr
 	}
 	if eventReq.EventTime.Before(now) {
-		return -1, errors.New("eventTime must be in the future")
+		return -1, customErrs.EventPastTimeErr
 	}
 	if eventReq.Title == "" {
-		return -1, errors.New("title empty")
+		return -1, customErrs.TitleEmptyErr
 	}
 	if err := validationPriority(eventReq.Priority); err != nil {
 		return -1, err
 	}
 	if eventReq.RemindAt != nil && eventReq.RemindAt.Before(now) {
-		return -1, errors.New("remindAt must be in the future")
+		return -1, customErrs.RemindAtPastErr
 	}
 	if eventReq.RemindAt != nil && !eventReq.RemindAt.Before(eventReq.EventTime) {
-		return -1, errors.New("remindAt must be before eventTime")
+		return -1, customErrs.RemindAtAfterEventTimeErr
 	}
 
 	event := models.Event{
@@ -72,24 +72,24 @@ func (s *EventService) Create(eventReq dto.CreateEventRequest) (int, error) {
 
 func (s *EventService) Update(id int, eventReq dto.UpdateEventRequest) error {
 	if id <= 0 {
-		return errors.New("invalid id")
+		return customErrs.InvalidIDErr
 	}
 	now := time.Now()
 	if eventReq.EventTime.Before(now) {
-		return errors.New("eventTime must be in the future")
+		return customErrs.EventPastTimeErr
 	}
 	if eventReq.Title == "" {
-		return errors.New("title empty")
+		return customErrs.TitleEmptyErr
 	}
 
 	if err := validationPriority(eventReq.Priority); err != nil {
 		return err
 	}
 	if eventReq.RemindAt != nil && eventReq.RemindAt.Before(now) {
-		return errors.New("remindAt must be in the future")
+		return customErrs.RemindAtPastErr
 	}
 	if eventReq.RemindAt != nil && !eventReq.RemindAt.Before(eventReq.EventTime) {
-		return errors.New("remindAt must be before eventTime")
+		return customErrs.RemindAtAfterEventTimeErr
 	}
 
 	oldEvent, err := s.repo.GetByID(id)
@@ -117,14 +117,14 @@ func (s *EventService) Update(id int, eventReq dto.UpdateEventRequest) error {
 
 func (s *EventService) Delete(id int) error {
 	if id <= 0 {
-		return errors.New("invalid id")
+		return customErrs.InvalidIDErr
 	}
 	return s.repo.DeleteEvent(id)
 }
 
 func (s *EventService) GetEventsForDay(userID int, date time.Time) ([]models.Event, error) {
 	if userID <= 0 {
-		return nil, errors.New("invalid userID")
+		return nil, customErrs.InvalidUserIDErr
 	}
 	allEvents := s.repo.GetAll()
 
@@ -142,7 +142,7 @@ func (s *EventService) GetEventsForDay(userID int, date time.Time) ([]models.Eve
 
 func (s *EventService) GetEventsForWeek(userID int, date time.Time) ([]models.Event, error) {
 	if userID <= 0 {
-		return nil, errors.New("invalid userID")
+		return nil, customErrs.InvalidUserIDErr
 	}
 	allEvents := s.repo.GetAll()
 
@@ -167,7 +167,7 @@ func (s *EventService) GetEventsForWeek(userID int, date time.Time) ([]models.Ev
 
 func (s *EventService) GetEventsForMonth(userID int, date time.Time) ([]models.Event, error) {
 	if userID <= 0 {
-		return nil, errors.New("invalid userID")
+		return nil, customErrs.InvalidUserIDErr
 	}
 	allEvents := s.repo.GetAll()
 
@@ -197,7 +197,7 @@ func validationPriority(priority string) error {
 			return nil
 		}
 	}
-	return errors.New("priority not in list: high, medium, low")
+	return customErrs.PriorityErr
 }
 
 func timePtr(t time.Time) *time.Time {
