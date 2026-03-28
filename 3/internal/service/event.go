@@ -1,0 +1,205 @@
+package service
+
+import (
+	"4_3/internal/customErrs"
+	"4_3/internal/dto"
+	"4_3/internal/models"
+	"4_3/internal/repository"
+	"4_3/internal/worker"
+	"sync"
+	"time"
+)
+
+type EventService struct {
+	m        sync.Mutex
+	ID       int
+	repo     *repository.EventRepository
+	remindCh chan worker.ReminderTask
+}
+
+func NewEventService(repo *repository.EventRepository, remindCh chan worker.ReminderTask) *EventService {
+	return &EventService{
+		ID:       0,
+		repo:     repo,
+		remindCh: remindCh,
+	}
+}
+
+func (s *EventService) Create(eventReq dto.CreateEventRequest) (int, error) {
+	now := time.Now()
+	if eventReq.UserID <= 0 {
+		return -1, customErrs.InvalidUserIDErr
+	}
+	if eventReq.EventTime.Before(now) {
+		return -1, customErrs.EventPastTimeErr
+	}
+	if eventReq.Title == "" {
+		return -1, customErrs.TitleEmptyErr
+	}
+	if err := validationPriority(eventReq.Priority); err != nil {
+		return -1, err
+	}
+	if eventReq.RemindAt != nil && eventReq.RemindAt.Before(now) {
+		return -1, customErrs.RemindAtPastErr
+	}
+	if eventReq.RemindAt != nil && !eventReq.RemindAt.Before(eventReq.EventTime) {
+		return -1, customErrs.RemindAtAfterEventTimeErr
+	}
+
+	event := models.Event{
+		ID:          s.generateID(),
+		UserID:      eventReq.UserID,
+		Title:       eventReq.Title,
+		EventTime:   eventReq.EventTime,
+		Description: eventReq.Description,
+		Priority:    eventReq.Priority,
+		RemindAt:    eventReq.RemindAt,
+		CreatedAt:   now,
+	}
+	s.repo.CreateEvent(event)
+	if event.RemindAt != nil {
+		reminderTask := worker.ReminderTask{
+			ID:        event.ID,
+			UserID:    event.UserID,
+			Title:     event.Title,
+			EventTime: event.EventTime,
+			RemindAt:  *event.RemindAt,
+		}
+		s.remindCh <- reminderTask
+	}
+	return event.ID, nil
+}
+
+func (s *EventService) Update(id int, eventReq dto.UpdateEventRequest) error {
+	if id <= 0 {
+		return customErrs.InvalidIDErr
+	}
+	now := time.Now()
+	if eventReq.EventTime.Before(now) {
+		return customErrs.EventPastTimeErr
+	}
+	if eventReq.Title == "" {
+		return customErrs.TitleEmptyErr
+	}
+
+	if err := validationPriority(eventReq.Priority); err != nil {
+		return err
+	}
+	if eventReq.RemindAt != nil && eventReq.RemindAt.Before(now) {
+		return customErrs.RemindAtPastErr
+	}
+	if eventReq.RemindAt != nil && !eventReq.RemindAt.Before(eventReq.EventTime) {
+		return customErrs.RemindAtAfterEventTimeErr
+	}
+
+	oldEvent, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	newEvent := models.Event{
+		ID:          oldEvent.ID,
+		UserID:      oldEvent.UserID,
+		Title:       eventReq.Title,
+		EventTime:   eventReq.EventTime,
+		Description: eventReq.Description,
+		Priority:    eventReq.Priority,
+		RemindAt:    eventReq.RemindAt,
+		CreatedAt:   oldEvent.CreatedAt,
+		UpdatedAt:   timePtr(now),
+	}
+	err = s.repo.UpdateEvent(id, newEvent)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EventService) Delete(id int) error {
+	if id <= 0 {
+		return customErrs.InvalidIDErr
+	}
+	return s.repo.DeleteEvent(id)
+}
+
+func (s *EventService) GetEventsForDay(userID int, date time.Time) ([]models.Event, error) {
+	if userID <= 0 {
+		return nil, customErrs.InvalidUserIDErr
+	}
+	allEvents := s.repo.GetAll()
+
+	year, month, day := date.Date()
+	startOfDay := time.Date(year, month, day, 0, 0, 0, 0, date.Location())
+	nextDay := startOfDay.AddDate(0, 0, 1)
+	userEvents := []models.Event{}
+	for _, event := range allEvents {
+		if event.UserID == userID && !event.EventTime.Before(startOfDay) && event.EventTime.Before(nextDay) {
+			userEvents = append(userEvents, event)
+		}
+	}
+	return userEvents, nil
+}
+
+func (s *EventService) GetEventsForWeek(userID int, date time.Time) ([]models.Event, error) {
+	if userID <= 0 {
+		return nil, customErrs.InvalidUserIDErr
+	}
+	allEvents := s.repo.GetAll()
+
+	year, month, day := date.Date()
+	startOfDay := time.Date(year, month, day, 0, 0, 0, 0, date.Location())
+
+	dayOfWeek := startOfDay.Weekday()
+	daysForMonday := int(dayOfWeek) - 1
+	if daysForMonday < 0 {
+		daysForMonday = 6
+	}
+	startOfWeek := startOfDay.AddDate(0, 0, -daysForMonday)
+	nextWeek := startOfWeek.AddDate(0, 0, 7)
+	userEvents := []models.Event{}
+	for _, event := range allEvents {
+		if event.UserID == userID && !event.EventTime.Before(startOfWeek) && event.EventTime.Before(nextWeek) {
+			userEvents = append(userEvents, event)
+		}
+	}
+	return userEvents, nil
+}
+
+func (s *EventService) GetEventsForMonth(userID int, date time.Time) ([]models.Event, error) {
+	if userID <= 0 {
+		return nil, customErrs.InvalidUserIDErr
+	}
+	allEvents := s.repo.GetAll()
+
+	year, month, _ := date.Date()
+	startOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, date.Location())
+	nextMonth := startOfMonth.AddDate(0, 1, 0)
+	userEvents := []models.Event{}
+	for _, event := range allEvents {
+		if event.UserID == userID && !event.EventTime.Before(startOfMonth) && event.EventTime.Before(nextMonth) {
+			userEvents = append(userEvents, event)
+		}
+	}
+	return userEvents, nil
+}
+
+func (s *EventService) generateID() int {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.ID++
+	return s.ID
+}
+
+func validationPriority(priority string) error {
+	valid := []string{"high", "medium", "low"}
+	for _, p := range valid {
+		if p == priority {
+			return nil
+		}
+	}
+	return customErrs.PriorityErr
+}
+
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
