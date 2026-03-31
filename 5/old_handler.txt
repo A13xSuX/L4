@@ -1,0 +1,16 @@
+﻿goos: windows
+goarch: amd64
+pkg: order-service/internal/handler
+cpu: AMD Ryzen 7 5700U with Radeon Graphics         
+BenchmarkOrderHandler-16    	  103322	     11056 ns/op	    7492 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  111915	     11269 ns/op	    7492 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	   97197	     13778 ns/op	    7493 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  109105	     10896 ns/op	    7493 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  121564	      8923 ns/op	    7492 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  133732	      8575 ns/op	    7492 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  130267	      8579 ns/op	    7493 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  141700	      8687 ns/op	    7493 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  131504	      8509 ns/op	    7492 B/op	      20 allocs/op
+BenchmarkOrderHandler-16    	  151140	      8717 ns/op	    7493 B/op	      20 allocs/op
+PASS
+ok  	order-service/internal/handler	14.173s
