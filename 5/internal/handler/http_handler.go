@@ -83,7 +83,8 @@ func orderHandler(orderService service.OrderService) http.HandlerFunc {
 
 		//fmt.Printf("Найден заказ: %s\n", orderUID)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(order)
+		response := toOrderResponse(order)
+		json.NewEncoder(w).Encode(response)
 	}
 }
 

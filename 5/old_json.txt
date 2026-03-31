@@ -1,0 +1,26 @@
+﻿goos: windows
+goarch: amd64
+pkg: order-service/internal/handler
+cpu: AMD Ryzen 7 5700U with Radeon Graphics         
+BenchmarkJsonEncodeOrder-16            	  232237	      4537 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  266444	      4741 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  219639	      4704 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  258712	      4458 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  308359	      3492 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  371109	      3459 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  365923	      3456 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  336823	      3793 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  346657	      3464 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrder-16            	  365466	      3553 ns/op	     993 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  508334	      2299 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  516832	      2301 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  540070	      2340 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  569095	      2351 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  552045	      2360 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  553870	      2397 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  543489	      2350 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  548347	      2323 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  519052	      2305 ns/op	     608 B/op	       3 allocs/op
+BenchmarkJsonEncodeOrderResponse-16    	  512148	      2278 ns/op	     608 B/op	       3 allocs/op
+PASS
+ok  	order-service/internal/handler	26.291s
